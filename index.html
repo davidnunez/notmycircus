@@ -8,10 +8,11 @@
   <style>
     html, body { height: 100%; margin: 0; background: #0e1024; color: #e9f0ff; font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial; }
     #caption { position: fixed; left: 0; right: 0; bottom: 10px; text-align: center; font-size: 12px; opacity: .7; letter-spacing: .3px; }
+    a {color: #e9f0ff}
   </style>
 </head>
 <body>
-  <div id="caption">A calm primate attempts Shakespeare while the internet does… whatever that is.</div>
+  <div id="caption">A calm primate attempts Shakespeare while the internet does… whatever that is.<br/>By <a href="https://davidnunez.com">David Nuñez</a> (<i>2025-10-12</i>)</div>
   <script>
     // === Non-interactive p5.js sketch ===
     const NUM_FLOATERS = 120;
@@ -134,7 +135,7 @@
         push(); translate(0, 50); this.paper.drawLocal(); pop();
 
         // 5) Mantra above
-        this.mantra.draw();
+        //this.mantra.draw();
         pop();
       }
       drawMonkeyBody(){
