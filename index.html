@@ -1,0 +1,254 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Zen Monkey Typist — Non-Interactive</title>
+  <script src="https://cdn.jsdelivr.net/npm/p5@1.9.3/lib/p5.min.js"></script>
+  <style>
+    html, body { height: 100%; margin: 0; background: #0e1024; color: #e9f0ff; font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial; }
+    #caption { position: fixed; left: 0; right: 0; bottom: 10px; text-align: center; font-size: 12px; opacity: .7; letter-spacing: .3px; }
+  </style>
+</head>
+<body>
+  <div id="caption">A calm primate attempts Shakespeare while the internet does… whatever that is.</div>
+  <script>
+    // === Non-interactive p5.js sketch ===
+    const NUM_FLOATERS = 120;
+    const CHAOS_RADIUS_MIN = 0.36;
+    const CHAOS_RADIUS_MAX = 0.72;
+    const CHAOS_SPEED = 0.0045;
+    const CHAOS_ELLP = 0.62;
+    const AURA_RADIUS = 0.22;
+
+    let floaters = [];
+    let monkey;
+    let tGlobal = 0;
+
+    const MESSAGES = [
+      "🔥 breaking takes","💬 99+ DMs","#discourse","@mentions","algorithm","sponcon",
+      "hot take","doomscroll","squirrel!","beep","ping","like/subscribe",
+      "SEO wizardry","notification","trendwave","✨ AI wrote this",
+      "new tab opened","urgent-ish","buy now","pls clap","ratioed","call is 15?",
+      "📈 chart goes brr","splashy launch","FOMO","whataboutism","*discourse*",
+      "🐘 toots","🐦 tweets","short video","Re: Re: Re:","infinite scroll",
+      "sponsor segment","microtask","pop-up","security update","ads","hot gossip"
+    ];
+
+    function setup(){
+      createCanvas(windowWidth, windowHeight);
+      pixelDensity(1);
+      textFont('ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial');
+      monkey = new Monkey();
+      for (let i=0;i<NUM_FLOATERS;i++) floaters.push(new Floater());
+    }
+
+    function windowResized(){ resizeCanvas(windowWidth, windowHeight); }
+
+    function draw(){
+      tGlobal += 1;
+      drawBackgroundGradient();
+
+      // Decorative chaos ring
+      push();
+      translate(width/2, height/2);
+      const ringR = min(width, height) * 0.44;
+      noFill(); stroke(255, 35); strokeWeight(1); circle(0,0, ringR*2);
+      pop();
+
+      // Floaters
+      for (const f of floaters){ f.update(); f.draw(); }
+
+      // Centerpiece
+      monkey.update();
+      monkey.draw();
+    }
+
+    function drawBackgroundGradient(){
+      const t = millis() * 0.0002;
+      const c1 = color(12, 14, 28);
+      const c2 = color(24 + 16*sin(t*0.7), 54 + 30*sin(t*1.1), 88 + 18*cos(t*0.6));
+      for (let y=0; y<height; y++){
+        const n = y/height; const mix = lerpColor(c1, c2, n*0.85);
+        stroke(mix); line(0, y, width, y);
+      }
+      // Faint stars
+      noStroke(); fill(255, 10);
+      for (let i=0;i<80;i++) circle(noise(i, tGlobal*0.004)*width, noise(999-i, tGlobal*0.004)*height, 1);
+    }
+
+    class Floater{
+      constructor(){
+        const r = min(width, height) * random(CHAOS_RADIUS_MIN, CHAOS_RADIUS_MAX);
+        const a = random(TWO_PI);
+        this.baseRadius = r; this.angle = a;
+        this.size = random(11, 26);
+        this.speed = CHAOS_SPEED * random(0.5, 1.6);
+        this.txt = random(MESSAGES);
+        this.yOff = random(1000);
+        this.alpha = random(110, 180);
+      }
+      update(){
+        const wobble = (noise(this.yOff, frameCount*0.006)-0.5) * 0.6;
+        this.angle += (this.speed + wobble*0.0015);
+        this.baseRadius += sin(frameCount*0.02 + this.angle) * 0.08;
+      }
+      draw(){
+        const cx = width/2, cy = height/2;
+        const x = cx + cos(this.angle) * this.baseRadius;
+        const y = cy + sin(this.angle) * this.baseRadius * CHAOS_ELLP;
+        push(); translate(x, y);
+        fill(235, this.alpha); noStroke();
+        textAlign(CENTER, CENTER); textSize(this.size);
+        text(this.txt, 0, 0);
+        pop();
+      }
+    }
+
+    class Monkey{
+      constructor(){
+        this.theta = 0;                // hand animation
+        this.paper = new PaperStream();
+        this.mantra = new Mantra();
+      }
+      update(){ this.theta += 0.14; this.paper.update(); this.mantra.update(); }
+      draw(){
+        const cx = width/2, cy = height/2;
+        push(); translate(cx, cy);
+        // Calm aura
+        noFill(); stroke(160, 210, 255, 90); strokeWeight(2);
+        for (let i=0;i<3;i++) circle(0, 8, (min(width,height)*AURA_RADIUS) + i*10 + 6*sin(frameCount*0.02+i));
+        // Shadow
+        noStroke(); fill(0, 40); ellipse(0, 120, 180, 28);
+
+        // 1) Body behind
+        this.drawMonkeyBody();
+
+        // 2) Typewriter base in front of body
+        push(); translate(0, 50); this.drawTypewriter(); pop();
+
+        // 3) Arms behind the paper so they peek from sides
+        this.drawTypingArms();
+
+        // 4) Paper in front (with mirrored text)
+        push(); translate(0, 50); this.paper.drawLocal(); pop();
+
+        // 5) Mantra above
+        this.mantra.draw();
+        pop();
+      }
+      drawMonkeyBody(){
+        push();
+        // body
+        noStroke(); fill(87,59,37); ellipse(0, 30, 140, 160);
+        // belly
+        fill(201,160,120); ellipse(0, 60, 90, 90);
+        // head & face (raised a bit)
+        fill(87,59,37); ellipse(0, -60, 120, 105);
+        fill(201,160,120); ellipse(0, -55, 90, 70);
+        // ears (raised with head)
+        fill(87,59,37); ellipse(-58, -62, 38, 38); ellipse(58, -62, 38, 38);
+        fill(201,160,120); ellipse(-58, -62, 22, 22); ellipse(58, -62, 22, 22);
+        // eyes + smile
+        fill(30); ellipse(-18, -56, 10, 14); ellipse(18, -56, 10, 14);
+        noFill(); stroke(30); strokeWeight(2); arc(0, -38, 26, 14, 0, PI);
+        // lotus legs
+        noStroke(); fill(87,59,37); ellipse(-40, 110, 80, 40); ellipse(40, 110, 80, 40);
+        pop();
+      }
+      drawTypingArms(){
+        // Asynchronous motion with subtle noise jitter
+        const t = this.theta;
+        noStroke(); fill(87,59,37);
+
+        // Left arm
+        push();
+        const jlX = (noise(frameCount*0.035, 12)-0.5) * 2.0; // ±1px
+        const jlY = (noise(frameCount*0.042, 33)-0.5) * 2.0;
+        translate(-96 + jlX, 6 + jlY);       // wider spread + jitter
+        rotate(0.20 + 0.28*sin(t) + (noise(frameCount*0.05, 7)-0.5)*0.08);
+        rect(-14, -10, 70, 20, 9);
+        pop();
+
+        // Right arm (phase-shifted)
+        push();
+        const jrX = (noise(frameCount*0.031, 91)-0.5) * 2.0;
+        const jrY = (noise(frameCount*0.048, 73)-0.5) * 2.0;
+        translate(96 + jrX, 4 + jrY);
+        rotate(-0.18 + -0.22*sin(t + 0.85) + (noise(frameCount*0.045, 19)-0.5)*0.08);
+        rect(-56, -10, 70, 20, 9);
+        pop();
+      }
+      drawTypewriter(){
+        push(); rectMode(CENTER);
+        // desk plank
+        fill(50,48,70); rect(0, 36, 220, 18, 6);
+        // body
+        fill(70,156,180); rect(0, 0, 180, 50, 10);
+        // keys
+        fill(230); for (let i=0;i<10;i++) circle(-80 + i*18, 10+sin(frameCount*0.2+i)*0.6, 10);
+        // platen (roller)
+        fill(30); rect(0, -24, 160, 10, 4);
+        pop();
+      }
+    }
+
+    class PaperStream{
+      constructor(){
+        this.text = "";
+        this.pool = "a bc de fg hi jk lm no pq rs tu vw xy z .,;: !?-";
+        this.target = "To be, or not to be — that is the banana."; // Shakespeare-adjacent
+        this.lastAdd = 0;
+      }
+      update(){
+        if (frameCount - this.lastAdd > 10){
+          this.lastAdd = frameCount;
+          const useQuote = random() < 0.12 && this.text.length < this.target.length;
+          const nextChar = useQuote ? this.target[this.text.length] : this.pool[int(random(this.pool.length))];
+          this.text += nextChar; if (this.text.length > 50) this.text = this.text.slice(-50);
+        }
+      }
+      // Draw paper relative to the typewriter local origin
+      drawLocal(){
+        const w = 140, h = 90, margin = 12;
+        push(); rectMode(CENTER);
+        // paper rectangle
+        fill(245,248,255); stroke(230); strokeWeight(1); rect(0, -40, w, h, 6);
+        // mirrored text (so the monkey "reads" it)
+        push();
+        translate(0, -50);   // center of paper
+        scale(-1, 1);        // mirror horizontally
+        noStroke(); fill(20); textAlign(LEFT, TOP); textSize(11);
+        const wrapped = wrapText(this.text, 22);
+        text(wrapped, 0, 0, w/2, h/2);
+        pop();
+        pop();
+      }
+    }
+
+    class Mantra{
+      constructor(){
+        this.lines = [
+          "Not my circus…","…not my monkeys.","Typing anyway.",
+          "Breathe in. Breathe out.","Focus: enabled.","Noise: acknowledged.","Boundaries: set."
+        ];
+        this.t = 0; this.idx = 0;
+      }
+      update(){ this.t++; if (this.t % 240 === 0) this.idx = (this.idx + 1) % this.lines.length; }
+      draw(){
+        push(); translate(width/2, height/2 - 160); textAlign(CENTER, CENTER); textSize(16);
+        fill(230, 240, 255, 220); text(this.lines[this.idx], 0, 0); pop();
+      }
+    }
+
+    function wrapText(str, lineLen){
+      const words = str.split(/\s+/); let out = ""; let line = "";
+      for (const w of words){
+        if ((line + w).length > lineLen){ out += line + "\n"; line = w + " "; }
+        else line += w + " ";
+      }
+      return out + line;
+    }
+  </script>
+</body>
+</html>
